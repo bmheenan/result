@@ -8,10 +8,10 @@ import (
 // function that doesn't need to return any value, but could encounter an error that must be communicated to the calling
 // function, e.g:
 //     func foo() (res result.Status) {
-//	       defer result.HandleStatus(&res)
+//         defer result.Handle(&res)
 //         doWork().
 //             OrErr("Couldn't do work") // returns an error result.Status
-//         return result.Ok()               // returns an ok result.Status
+//         return result.Ok()            // returns an ok result.Status
 //     }
 type Status struct {
 	base
@@ -113,10 +113,9 @@ func (s Status) OrPanic(p string) {
 
 // OrDo does nothing if the Status is ok. Otherwise, it executes the provided function f. Usage:
 //     func main() {
-//         doWork().
-//             OrDo(func(e error) {
-//                 fmt.Printf("Couldn't do work: %v\n", e)
-//             })
+//         doWork().OrDo(func(e error) {
+//             fmt.Printf("Couldn't do work: %v\n", e)
+//         })
 //     }
 func (s Status) OrDo(f func(error)) {
 	if s.err == nil {

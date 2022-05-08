@@ -92,13 +92,13 @@ In regular go:
 
 ```go
 func main() {
-    err := sendStory()
+    err := sendNewStory()
     if err != nil {
-        fmt.Printf("Error sending story: %v", err)
+        fmt.Printf("Error sending new story: %v\n", err)
     }
 }
 
-func sendStory() error {
+func sendNewStory() error {
     n, err := name()
     if err != nil {
         return fmt.Errorf("Couldn't get name: %v", err)
