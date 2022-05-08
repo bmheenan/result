@@ -1,7 +1,18 @@
 package result
 
 // HandleReturn must be defered at the beginning of a function if that function doesn't return an error or a result, in
-// order to use .OrReturn within the function
+// order to use OrDoAndReturn within the function. Usage:
+//     func main() {
+//         defer result.HandleReturn()
+//         // now safe to use:
+//         result.Errorf("Result with error").
+//             OrDoAndReturn(func(e error) {
+//                 fmt.Println("Result contained an error") // main will stop executing after this line
+//             })
+//         fmt.Println("this line will not execute")
+//     }
+// If you use OrError or OrDoAndReturn without defering Handle, HandleError, or HandleReturn at the beginning of the
+// function, it will panic
 func HandleReturn() {
 	r := recover()
 	if r == nil {
@@ -14,15 +25,18 @@ func HandleReturn() {
 	panic(r)
 }
 
-// HandleErr must be used with defer at the start of a function if that function returns an error. If the function
-// uses .OrErr or .OrReturn without defering a HandleXxx function, it will panic. err must be a pointer to the named
-// error return value of the function. Usage:
+// HandleError must be defered at the begining of a function if that function returns an error, in order to to use
+// OrError or OrDoAndReturn within the function. err must be a pointer to the named error return value of the
+// function. Usage:
 //     func f() (err error) {
-//	       defer result.HandleErr(&err)
+//         defer result.HandleError(&err)
 //         // now safe to use:
-//         x := result.None[int]().OrErr("Couldn't get x") // f will stop executing here and return an error
-//         // ...
+//         result.Errorf("Result with an error").
+//             OrError("Result contained an error") // f will stop executing here and return an error
+//         fmt.Println("this line will not execute")
 //     }
+// If you use OrError or OrDoAndReturn without defering Handle, HandleError, or HandleReturn at the beginning of the
+// function, it will panic
 func HandleError(err *error) {
 	r := recover()
 	if r == nil {
@@ -40,9 +54,19 @@ func HandleError(err *error) {
 	panic(r)
 }
 
-// Handle must be deferred at the beginning of a function, if that function returns a result, in order to use
-// .OrReturn or .OrError within the function
-func Handle(e errorSetter) {
+// Handle must be defered at the begining of a function if that function returns a result, in order to to use
+// OrError or OrDoAndReturn within the function. res must be a pointer to the named result return value of the
+// function. Usage:
+//     func f() (res result.Status) {
+//         defer result.Handle(&res)
+//         // now safe to use:
+//         result.Errorf("Result with an error").
+//             OrError("Result contained an error") // f will stop executing here and return an error Status
+//         fmt.Println("this line will not execute")
+//     }
+// If you use OrError or OrDoAndReturn without defering Handle, HandleError, or HandleReturn at the beginning of the
+// function, it will panic
+func Handle(res errorSetter) {
 	r := recover()
 	if r == nil {
 		return
@@ -53,7 +77,7 @@ func Handle(e errorSetter) {
 	}
 	p, ok := r.(panicToError)
 	if ok {
-		e.setError(p.err)
+		res.setError(p.err)
 		return
 	}
 	panic(r)

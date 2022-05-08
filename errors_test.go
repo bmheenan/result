@@ -48,6 +48,6 @@ func errorsOrErrPanics() {
 		OrError("Expected error")
 }
 
-func errorsErr() (v result.Status) {
+func errorsErr() (r result.Status) {
 	return result.Errorf("Test error")
 }

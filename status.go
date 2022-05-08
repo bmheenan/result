@@ -7,8 +7,8 @@ import (
 // Status is the simplest type of result. It's either ok, or it's an error. It's most useful as a return value for a
 // function that doesn't need to return any value, but could encounter an error that must be communicated to the calling
 // function, e.g:
-//     func foo() (v result.Status) {
-//	       defer result.HandleStatus(&v)
+//     func foo() (res result.Status) {
+//	       defer result.HandleStatus(&res)
 //         doWork().
 //             OrErr("Couldn't do work") // returns an error result.Status
 //         return result.Ok()               // returns an ok result.Status
@@ -22,7 +22,7 @@ func Ok() Status {
 	return Status{}
 }
 
-// Err returns a new status with the given error
+// Error returns a new Status with the given error
 func Error(err error) Status {
 	return Status{
 		base{
@@ -31,7 +31,7 @@ func Error(err error) Status {
 	}
 }
 
-// Errorf returns a new status with an error made from the given string and arguments. s and args should be the same as
+// Errorf returns a new Status with an error made from the given string and arguments. s and args should be the same as
 // what would be provided to fmt.Errorf
 func Errorf(s string, args ...any) Status {
 	return Status{
@@ -41,8 +41,9 @@ func Errorf(s string, args ...any) Status {
 	}
 }
 
-// Try encloses a function that may return an error and returns its result as a Status. Example usage:
-//     result.Try(f()).OrError("f failed")
+// Try encloses a function that may return an error, then returns its result as a Status. Usage:
+//     result.Try(f()).
+//         OrError("f failed")
 func Try(err error) Status {
 	if err == nil {
 		return Ok()
@@ -50,19 +51,18 @@ func Try(err error) Status {
 	return Error(err)
 }
 
-// OrErr does nothing if the Status is ok. Otherwise, it stops execution of the function and returns an error. Use e
-// to provide extra context about what went wrong; it will be included in the error.
+// OrError does nothing if the Status is ok. Otherwise, it stops execution of the calling function and returns an error.
+// Use e to provide an explanation about what went wrong; it will be included in the returned error.
 //
-// OrErr must only be used inside a function that returns an error or a result, and that has already set up a Handle
-// fuction, e.g:
-//     func f() (v result.Status) {
-//	       defer opt.HandleStatus(&v)
-//         result.Errorf("Test error").
-//             OrErr("Found an error") // f will stop executing here and return an error
-//         // ... code here will not execute
+// OrError must only be used inside a function that returns an error or a result, and that has already defered Handle or
+// HandleError. Usage:
+//     func f() (res result.Status) {
+//         defer result.Handle(&res)
+//         doWork().
+//             OrError("Couldn't do work")
+//         return result.Ok()
 //     }
-//
-// If OrErr is called on an Opt without a concrete value, and the function hasn't deferred opt.Handle, it will panic
+// If you use OrError without defering Handle or HandleError at the beginning of the function, it will panic
 func (s Status) OrError(e string) {
 	if s.err == nil {
 		return
@@ -72,8 +72,21 @@ func (s Status) OrError(e string) {
 	})
 }
 
-// OrDoAndReturn does nothing if Status is ok. Otherwise, it runs the given function f, and then returns from the
-// calling function
+// OrDoAndReturn does nothing if the Status is ok. Otherwise, it executes the provided function f, then returns from
+// the calling function.
+//
+// OrDoAndReturn must only be used inside a function that has already defered Handle, HandleError, or HandleReturn.
+// Usage:
+//     func main() {
+//         defer result.HandleReturn()
+//         doWork().
+//             OrDoAndReturn(func(e error) {
+//                 fmt.Printf("Couldn't do work: %v\n", e)
+//             })
+//         fmt.Println("This line only executes if doWork's Status is ok")
+//     }
+// If you use OrDoAndReturn without defering Handle, HandleError, or HandleReturn at the beginning of the function, it
+// will panic
 func (s Status) OrDoAndReturn(f func(error)) {
 	if s.err == nil {
 		return
@@ -84,8 +97,13 @@ func (s Status) OrDoAndReturn(f func(error)) {
 	})
 }
 
-// OrPanic does nothing if Status is ok. Otherwise, if Status has an error, it panics. (This panic will not be caught by
-// any result.Handle function). Use p to provide extra context about what went wrong; it will be included in the panic
+// OrPanic does nothing if the Status is ok. Otherwise, it panics. This panic will not be caught by Handle,
+// HandleError, or HandleReturn. Use p to provide extra context about what went wrong; it will be included in the panic.
+// Usage:
+//     func main() {
+//         doWork().
+//             OrPanic("Couldn't do work")
+//     }
 func (s Status) OrPanic(p string) {
 	if s.err == nil {
 		return
@@ -93,8 +111,13 @@ func (s Status) OrPanic(p string) {
 	panic(fmt.Errorf("%v: %v", p, s.err))
 }
 
-// Or does nothing if Status was ok. Otherwise, if Status has an error, it executes the given function, which is given
-// access to the error.
+// OrDo does nothing if the Status is ok. Otherwise, it executes the provided function f. Usage:
+//     func main() {
+//         doWork().
+//             OrDo(func(e error) {
+//                 fmt.Printf("Couldn't do work: %v\n", e)
+//             })
+//     }
 func (s Status) OrDo(f func(error)) {
 	if s.err == nil {
 		return

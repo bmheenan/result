@@ -5,7 +5,7 @@ type panicToReturn struct {
 }
 
 func (p panicToReturn) Error() string {
-	return "Unrecovered panic from result. Use `defer result.HandleReturn()`, `defer result.HandleStatus(&v)`, or `defer result.HandleErr(&err)` at the top of the func to convert the panic into a return"
+	return "Unrecovered panic from result. Use `defer result.HandleReturn()`, `defer result.Handle(&r)`, or `defer result.HandleError(&err)` at the top of the func to convert the panic into a return"
 }
 
 type panicToError struct {
@@ -13,5 +13,5 @@ type panicToError struct {
 }
 
 func (p panicToError) Error() string {
-	return "Unrecovered panic from result. Use `defer result.HandleStatus(&v)` or `defer result.HandleErr(&err)` at the top of the func to convert the panic into a returned result or error: " + p.err.Error()
+	return "Unrecovered panic from result. Use `defer result.Handle(&r)` or `defer result.HandleError(&err)` at the top of the func to convert the panic into a returned result or error: " + p.err.Error()
 }

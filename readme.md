@@ -1,10 +1,8 @@
 # result
 
-`result` is an easier, more concise way to work with values that may exist at runtime, or may not exist due to an error. A
-result is like a box of values, thus the name. Plus, *result* is latin for *voice*, and resultes are used for communication
-between functions, so it's fitting.
-
-If you apprectiate go's philosophy towards explicit error handling, but you're still a little tired to typing...
+`result` is an easier, more concise way to work with values that may exist at runtime, or may not exist due to an error.
+It's best suited for holding the result of a function, thus the name. If you apprectiate go's explicit error handling,
+but you're still a little tired to typing...
 ```go
 if err != nil {
     return 0, fmt.Errorf("Added context: %v", err)
@@ -62,12 +60,12 @@ Okay, but there's a lot of boilerplate code in there. This is it with `result`:
 func main() {
     s := fmt.Sprintf(
         "%v the %v %v %v.",
-        name().OrDefault("Aaron"),
-        animal().OrDefault("sheep"),
-        verb().OrDefault("painted"),
-        object().OrDefault("a rainbow"),
+        name().OrUse("Aaron"),
+        animal().OrUse("sheep"),
+        verb().OrUse("painted"),
+        object().OrUse("a rainbow"),
     )
-    send(s).Or(func(e error) {
+    send(s).OrDo(func(e error) {
         fmt.Printf("Couldn't send: %v\n", e)
     })
 }
@@ -88,7 +86,9 @@ func send(s string) result.Status { /* ... */ }
 Go has great errors that tell you exactly what went wrong, especially in well-written code. Sadly, that well-written
 code can be a bit repetitive and tedious to write. Let's go back to our previous example, but factor the main logic into
 its own function that returns an error. Instead of using default values, if we get an error while filling in the story,
-we'll pass the error back up to `main()`. In regular go:
+we'll pass the error back up to `main()`.
+
+In regular go:
 
 ```go
 func main() {
@@ -132,27 +132,27 @@ And now using `result`:
 
 ```go
 func main() {
-    sendStory().Or(func(e error) {
-        fmt.Printf("Error sending story: %v", e)
+    sendNewStory().OrDo(func(e error) {
+        fmt.Printf("Error sending new story: %v\n", e)
     })
 }
 
-func sendStory() (v result.Status) {
-    defer result.HandleStatus(&v)
+func sendNewStory() (res result.Status) {
+    defer result.Handle(&res)
 
     s := fmt.Sprintf(
         "%v the %v %v %v.",
         name().
-            OrErr("Couldn't get name"),
+            OrError("Couldn't get name"),
         animal().
-            OrErr("Couldn't get animal"),
+            OrError("Couldn't get animal"),
         verb().
-            OrErr("Couldn't get verb"),
+            OrError("Couldn't get verb"),
         object().
-            OrErr("Couldn't get object"),
+            OrError("Couldn't get object"),
     )
     send(s).
-        OrErr("Couldn't send")
+        OrError("Couldn't send")
 
     return result.Ok()
 }
