@@ -70,13 +70,13 @@ func main() {
     })
 }
 
-func name() result.Var[string] { /* ... */ }
+func name() result.Val[string] { /* ... */ }
 
-func animal() result.Var[string] { /* ... */ }
+func animal() result.Val[string] { /* ... */ }
 
-func verb() result.Var[string] { /* ... */ }
+func verb() result.Val[string] { /* ... */ }
 
-func object() result.Var[string] { /* ... */ }
+func object() result.Val[string] { /* ... */ }
 
 func send(s string) result.Status { /* ... */ }
 ```

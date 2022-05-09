@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/bmheenan/result"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStatusOk(t *testing.T) {
@@ -171,4 +172,8 @@ func TestTryError(t *testing.T) {
 	if a {
 		t.Error("OrDo wasn't executed on a Try from an error")
 	}
+}
+
+func TestErrorIsEmpty(t *testing.T) {
+	assert.Equal(t, "", result.Ok().Error())
 }

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/bmheenan/result"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHandlersToErrReturnError(t *testing.T) {
@@ -54,4 +55,22 @@ func TestBasicHandlersHandleReturn(t *testing.T) {
 
 func TestBasicHandlersHandleReturnUnused(t *testing.T) {
 	defer result.HandleReturn()
+}
+
+func TestHandleErrorPassesPanic(t *testing.T) {
+	assert.Panics(t, func() {
+		panicsThroughHandleError()
+	})
+}
+
+func panicsThroughHandleError() (err error) {
+	defer result.HandleError(&err)
+	panic("expected panic")
+}
+
+func TestPanicsThroughHandleReturn(t *testing.T) {
+	assert.Panics(t, func() {
+		defer result.HandleReturn()
+		panic("Expected panic")
+	})
 }
