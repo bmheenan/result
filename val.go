@@ -49,6 +49,25 @@ func TryVal[T any](v T, err error) Val[T] {
 	return ValError[T](err)
 }
 
+// FromSlice returns a Val containing the value from slice s at position i, if i is within the bounds of s. If i is out
+// of bounds, FromSlice returns an error Val
+func FromSlice[T any](s []T, i int) Val[T] {
+	if i < 0 || i >= len(s) {
+		return ValErrorf[T]("Index %v out of bounds for slice of len %v", i, len(s))
+	}
+	return NewVal(s[i])
+}
+
+// FromMap returns a Val containing the value from map m for key k, if there is one. If m has no value for key k,
+// FromMap returns an error Val
+func FromMap[T any, K comparable](m map[K]T, k K) Val[T] {
+	v, ok := m[k]
+	if !ok {
+		return ValErrorf[T]("Map had no value for key %v", k)
+	}
+	return NewVal(v)
+}
+
 // OrError returns the underlying value if the Val is ok. Otherwise, it stops execution of the calling function and
 // returns an error. Use e to provide an explanation about what went wrong; it will be included in the returned error.
 //

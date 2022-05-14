@@ -91,3 +91,72 @@ func TestValOrPanicDoesntPanic(t *testing.T) {
 	result.NewVal("hello").
 		OrPanic("Unexpected panic")
 }
+
+func TestFromSliceInBounds(t *testing.T) {
+	s := []string{"hello", "world"}
+	assert.Equal(
+		t,
+		result.FromSlice(s, 0).
+			OrPanic("Couldn't get position 0"),
+		"hello",
+	)
+	assert.Equal(
+		t,
+		result.FromSlice(s, 1).
+			OrPanic("Couldn't get position 1"),
+		"world",
+	)
+}
+
+func TestFromSliceOutOfBounds(t *testing.T) {
+	s0 := []string{}
+	s := []string{"hello", "world"}
+	assert.PanicsWithErrorf(
+		t,
+		"No value: Index 0 out of bounds for slice of len 0",
+		func() {
+			result.FromSlice(s0, 0).OrPanic("No value")
+		},
+		"Didn't panic from len 0",
+	)
+	assert.PanicsWithErrorf(
+		t,
+		"No value: Index 2 out of bounds for slice of len 2",
+		func() {
+			result.FromSlice(s, 2).OrPanic("No value")
+		},
+		"Didn't panic from len 2",
+	)
+	assert.PanicsWithErrorf(
+		t,
+		"No value: Index -1 out of bounds for slice of len 2",
+		func() {
+			result.FromSlice(s, -1).OrPanic("No value")
+		},
+		"Didn't panic from negative i",
+	)
+}
+
+func TestFromMapPresentKey(t *testing.T) {
+	m := map[int]string{
+		1:   "hello",
+		100: "world",
+	}
+	assert.Equal(
+		t,
+		result.FromMap(m, 1).
+			OrPanic("No value"),
+		"hello",
+	)
+}
+
+func TestFromMapMissingKey(t *testing.T) {
+	assert.PanicsWithErrorf(
+		t,
+		"No value: Map had no value for key 0",
+		func() {
+			result.FromMap(map[int]string{}, 0).OrPanic("No value")
+		},
+		"Didn't panic from empty map",
+	)
+}

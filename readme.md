@@ -4,11 +4,27 @@
 It's best suited for holding the result of a function, thus the name. If you apprectiate go's explicit error handling,
 but you're still a little tired to typing...
 ```go
+x, err := foo()
 if err != nil {
-    return 0, fmt.Errorf("Added context: %v", err)
+    return 0, fmt.Errorf("Couldn't foo: %v", err)
 }
 ```
 ...then you're in the right place.
+
+With `result`, you can replace that boilerplate error handling with 
+```go
+x := foo().
+    OrError("Couldn't foo")
+```
+
+Benefits:
+* **Faster to write.** You specify higher-level logic that abstracts out repetitive coding
+* **Easier to read.** Error handling is still handled explicitly, but better sepearated from the non-error flow of your
+  code.
+* **Simpler to maintain.** The signature of a function is better seperated from its implementation. Error cases don't
+  have to worry about what's returned on success cases and vice-versa.
+* **Harder to add bugs.** It's impossible to get the return value of a function without specifying exactly what to do in
+  the event of an error.
 
 ## How it works
 
@@ -159,3 +175,15 @@ func sendNewStory() (res result.Status) {
 
 // Same definitions for dependent functions
 ```
+
+func f() (res result.Status) {
+    defer result.Handle(&res)
+
+    result.Try(g()).
+        OrError("Error")
+
+    err := g()
+    if err != nil {
+        return fmt.Errorf("Error: %v", err)
+    }
+}
