@@ -76,8 +76,8 @@ func FromMap[T any, K comparable](m map[K]T, k K) Val[T] {
 //     func aPlus1() (res result.Val[int]) {
 //         defer result.Handle(&res)
 //         a := calcA().
-//             OrErr("Couldn't calculate a") // returns an error result.Val
-//         return result.NewVal(a + 1)       // returns an ok result.Val
+//             OrError("Couldn't calculate a") // returns an error result.Val
+//         return result.NewVal(a + 1)         // returns an ok result.Val
 //     }
 // If you use OrError without defering Handle or HandleError at the beginning of the function, it will panic
 func (v Val[T]) OrError(e string) T {

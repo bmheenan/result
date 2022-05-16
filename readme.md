@@ -17,13 +17,13 @@ x := foo().
     OrError("Couldn't foo")
 ```
 
-Benefits:
-* **Faster to write.** You specify higher-level logic that abstracts out repetitive coding
-* **Easier to read.** Error handling is still handled explicitly, but better sepearated from the non-error flow of your
+`result` is
+* **faster to write.** You specify higher-level logic that abstracts out repetitive coding
+* **easier to read.** Error handling is still handled explicitly, but better sepearated from the non-error flow of your
   code.
-* **Simpler to maintain.** The signature of a function is better seperated from its implementation. Error cases don't
+* **simpler to maintain.** The signature of a function is better seperated from its implementation. Error cases don't
   have to worry about what's returned on success cases and vice-versa.
-* **Harder to add bugs.** It's impossible to get the return value of a function without specifying exactly what to do in
+* **harder to add bugs.** It's impossible to get the return value of a function without specifying exactly what to do in
   the event of an error.
 
 ## How it works
@@ -49,10 +49,10 @@ func main() {
     }
     o, err := object()
     if err != nil {
-        o = "a rainbow"
+        o = "rainbow"
     }
 
-    s := fmt.Sprintf("%v the %v %v %v.", n, a, v, o)
+    s := fmt.Sprintf("%v the %v %v a %v.", n, a, v, o)
     err = send(s)
     if err != nil {
         fmt.Printf("Couldn't send: %v\n", err)
@@ -70,16 +70,25 @@ func object() (string, error) { /* ... */ }
 func send(s string) error { /* ... */ }
 ```
 
-Okay, but there's a lot of boilerplate code in there. This is it with `result`:
+Okay, but there's a lot of boilerplate code in there.
+
+With `result`, we change the return values of our worker functions from `(T, error)` to `result.Val[T]`, or from `error`
+to `result.Status`. That allows us to significantly simplify the code that calls them. `Val` and `Status` support common
+functions that return the underlying value when there's no error, and execute whatever backup logic you need if there
+is.
+
+In the following code for example, `name().OrUse("Aaron")` will return whatever the result of `name()` was, as long as
+it wasnt' an error. If it was an error, we get the default "Aaron". Because it only returns a single value, we can
+simplify `main()` down to 2 statements:
 
 ```go
 func main() {
     s := fmt.Sprintf(
-        "%v the %v %v %v.",
+        "%v the %v %v a %v.",
         name().OrUse("Aaron"),
         animal().OrUse("sheep"),
         verb().OrUse("painted"),
-        object().OrUse("a rainbow"),
+        object().OrUse("rainbow"),
     )
     send(s).OrDo(func(e error) {
         fmt.Printf("Couldn't send: %v\n", e)
@@ -104,7 +113,7 @@ code can be a bit repetitive and tedious to write. Let's go back to our previous
 its own function that returns an error. Instead of using default values, if we get an error while filling in the story,
 we'll pass the error back up to `main()`.
 
-In regular go:
+Without `result`:
 
 ```go
 func main() {
@@ -132,7 +141,7 @@ func sendNewStory() error {
         return fmt.Errorf("Couldn't get object: %v", err)
     }
 
-    s := fmt.Sprintf("%v the %v %v %v.", n, a, v, o)
+    s := fmt.Sprintf("%v the %v %v a %v.", n, a, v, o)
     err = send(s)
     if err != nil {
         return fmt.Errorf("Couldn't send: %v", err)
@@ -157,7 +166,7 @@ func sendNewStory() (res result.Status) {
     defer result.Handle(&res)
 
     s := fmt.Sprintf(
-        "%v the %v %v %v.",
+        "%v the %v %v a %v.",
         name().
             OrError("Couldn't get name"),
         animal().
@@ -176,14 +185,29 @@ func sendNewStory() (res result.Status) {
 // Same definitions for dependent functions
 ```
 
-func f() (res result.Status) {
-    defer result.Handle(&res)
+Notice that instead of calling `OrUse("default value")` on the results, we're now calling `OrError("Context")`. Results
+allow you to decide what you want to happen if the called function returns an error, while guaranteeing that you'll
+either get a value you can work with, or that the function will stop execution at its current place. Here's all the
+options:
+* `OrDo(func(error))`: Only available on `result.Status` (for functions that return nothing on success); executes the
+  given function if it encounters an error, then continues.
+* `OrUse(T)` or `OrUse(T, U)`: Only available on `result.Val` or `result.Vals` (for functions that return values on
+  success); uses the provided values as substitutes if an error occurs.
+* `OrDoAndReturn(func(error))`: executes the given function, then stops execution of the function it occurs in.
+* `OrError(string)`: stops execution of the function it occurs in, which then returns an error or error result. The
+  given string is included in the error chain, along with the error that caused it to trigger.
+* `OrPanic(string)`: panics with an error. The given string is included in the error chain, along with the error that
+  caused it to trigger.
 
-    result.Try(g()).
-        OrError("Error")
+All of them can be used in the same way, chained after the call to a function that returns a `result.Status`,
+`result.Val`, or `result.Vals`. The convention is to put any call that might halt execution of the enclosing function on
+its own line (`OrDoAndReturn`, `OrError`, or `OrPanic`). This helps the reader see where execution of a function might
+stop.
 
-    err := g()
-    if err != nil {
-        return fmt.Errorf("Error: %v", err)
-    }
-}
+Notice also that we `defer result.Handle(&res)` at the start of the function. This is required if we're going to use any
+functionality that halts execution of the enclosing function.
+* Use `defer result.Handle(*result.Status)`, `defer result.Handle(*result.Val)`, or `defer result.Handle(*result.Vals)`
+  if the function itself returns a result.
+* Use `defer result.HandleError(*error)` if the function returns an error.
+* Use `defer result.HandleReturn()` if the function doesn't return an error or a result which could hold an error. In
+  this case, you can't use `OrError` within the function.
